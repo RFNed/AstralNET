@@ -1,0 +1,16 @@
+body {
+    background-color: rgb(20, 20, 20);
+    color: white;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
+.main-block {
+    margin-top: 80px;
+    width: 600px;
+    background-color: rgba(90, 90, 90, 0.13);
+    padding: 40px;
+    border-radius: 60px;
+    height: 800px;
+}
