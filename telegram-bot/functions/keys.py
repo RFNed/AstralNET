@@ -44,14 +44,12 @@ where users.tg_id = %s
                     await sleep(uniform(1.3, 2.6))
                 await loading_msg.edit_text(f"💁‍♂️ <b>Ваши ключи доступа</b>:\n{values}")
 
-
-
 @rutkey.message(Command("addkey"))
 async def generate_key(message: Message, is_admin: bool, pool: aiomysql.Pool):
     if is_admin:
         arguments = message.text.split()
         if len(arguments) != 3:
-            await message.answer("Использование: /addkey [tg_id] [duration_in_days]")
+            await message.answer("❔ Использование: /addkey [tg_id] [duration_in_days]")
             return
         tg_id = arguments[1]
         message_load = await message.answer("💌")
@@ -63,38 +61,38 @@ async def generate_key(message: Message, is_admin: bool, pool: aiomysql.Pool):
                     await cursor.execute("select * from details_key join _keys on _keys.id = details_key.id_key join users on users.id = _keys.user_id where user_id = %s", (user[0],))
                     temp_result = await cursor.fetchone()
                     if not temp_result:
-#                        try:
-                        await cursor.execute("INSERT INTO `_keys` (`id`, `user_id`, `expires_at`) VALUES (NULL, %s, DATE_ADD(NOW(), INTERVAL %s DAY))", (user[0], arguments[2]))
-                        await cursor.execute("select id from _keys where user_id = %s", (user[0],))
-                        id_key = await cursor.fetchone()
-                        await cursor.execute("select id, name from protocols")
-                        protocols = await cursor.fetchall()
-                        for protocol in protocols:
-                            if protocol[1] == "Hysteria":
-                                await cursor.execute("INSERT INTO `details_key` (`id`, `id_key`, `id_protocol`, `value1`, `value2`) VALUES (NULL, %s, %s, %s, NULL)", (id_key[0], protocol[0], token_urlsafe(12)))
-                            elif protocol[1] == "VLESS":
-                                hex_token = token_hex(16)
-                                uuid_token = uuid4()
-                                
-                                await cursor.execute("INSERT INTO `details_key` (`id`, `id_key`, `id_protocol`, `value1`, `value2`) VALUES (NULL, %s, %s, %s, %s)", (id_key[0], protocol[0], str(hex_token), str(uuid_token)))
-                                async with aioopen(PATH_VLESS_CONFIG, "r", encoding="utf-8") as f:
-                                    data_file = await f.read()
-                                    data = json.loads(data_file)
-                                    new_client = {
-                                        "id": str(uuid_token),
-                                        "flow": "xtls-rprx-vision"
-                                    }
-                                    data["inbounds"][0]["settings"]["clients"].append(new_client)
-                                    data["inbounds"][0]["streamSettings"]["realitySettings"]["shortIds"].append(f"{hex_token}")
-                                async with aioopen(PATH_VLESS_CONFIG, "w", encoding="utf-8") as f:
-                                    await f.write(json.dumps(data, indent=4))
-                                try:
-                                    run("sudo systemctl restart xray", capture=True, text=True, shell=True)
-                                except:
-                                    print("Error restarting Xray service")
-#                        except:
-#                            await message_load.edit_text("⚠️ Произошла ошибка при генерации ключа доступа!")
-#                            return
+                        try:
+                            await cursor.execute("INSERT INTO `_keys` (`id`, `user_id`, `expires_at`) VALUES (NULL, %s, DATE_ADD(NOW(), INTERVAL %s DAY))", (user[0], arguments[2]))
+                            await cursor.execute("select id from _keys where user_id = %s", (user[0],))
+                            id_key = await cursor.fetchone()
+                            await cursor.execute("select id, name from protocols")
+                            protocols = await cursor.fetchall()
+                            for protocol in protocols:
+                                if protocol[1] == "Hysteria":
+                                    await cursor.execute("INSERT INTO `details_key` (`id`, `id_key`, `id_protocol`, `value1`, `value2`) VALUES (NULL, %s, %s, %s, NULL)", (id_key[0], protocol[0], token_urlsafe(12)))
+                                elif protocol[1] == "VLESS":
+                                    hex_token = token_hex(12)
+                                    uuid_token = uuid4()
+                                    
+                                    await cursor.execute("INSERT INTO `details_key` (`id`, `id_key`, `id_protocol`, `value1`, `value2`) VALUES (NULL, %s, %s, %s, %s)", (id_key[0], protocol[0], str(hex_token), str(uuid_token)))
+                                    async with aioopen(PATH_VLESS_CONFIG, "r", encoding="utf-8") as f:
+                                        data_file = await f.read()
+                                        data = json.loads(data_file)
+                                        new_client = {
+                                            "id": str(uuid_token),
+                                            "flow": "xtls-rprx-vision"
+                                        }
+                                        data["inbounds"][0]["settings"]["clients"].append(new_client)
+                                        data["inbounds"][0]["streamSettings"]["realitySettings"]["shortIds"].append(f"{hex_token}")
+                                    async with aioopen(PATH_VLESS_CONFIG, "w", encoding="utf-8") as f:
+                                        await f.write(json.dumps(data, indent=4))
+                                    try:
+                                        run("sudo systemctl restart xray", capture=True, text=True, shell=True)
+                                    except:
+                                        print("Error restarting Xray service")
+                        except:
+                            await message_load.edit_text("⚠️ Произошла ошибка при генерации ключа доступа!")
+                            return
                     else:
                         await message_load.edit_text("⚠️ Ключ доступа уже есть!")
                         return
