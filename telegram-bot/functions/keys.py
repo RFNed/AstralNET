@@ -1,6 +1,9 @@
 from aiogram import Router
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import CommandStart
+from asyncio import sleep
+from random import uniform
+from config import SALAMANDER_OBFS, SNI_HYSTERIA, HOST_HYSTERIA, HOST_VLESS, SNI_VLESS, PUBLIC_KEY
 import aiomysql
 rutkey = Router()
 
@@ -12,18 +15,32 @@ async def get_key_callback_handler(callback_query: CallbackQuery, is_user: bool)
 
 @rutkey.callback_query(lambda c: c.data == "take_my_key")
 async def take_my_key_callback_handler(callback_query: CallbackQuery, is_user: bool, pool: aiomysql.Pool):
+    await callback_query.answer()
     if is_user:
         loading_msg = await callback_query.message.answer("⏳")
+        values = ""
         async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("SELECT uuid_key, key_hash FROM _keys WHERE user_id = (SELECT id FROM users WHERE tg_id = %s)", (callback_query.from_user.id,))
-                result = await cur.fetchone()
-                await loading_msg.delete()
-                key = f"vless:"
-                if result:
-                    await callback_query.message.answer(f"🔑 Ваш ключ доступа: <code>{result[0]}</code>")
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+select users.tg_id, protocols.name, details_key.value1, details_key.value2 
+from details_key 
+join protocols on protocols.id = details_key.id_protocol 
+join _keys on _keys.id = details_key.id_key 
+join users on users.id = _keys.user_id 
+where users.tg_id = %s
+                                     """, (callback_query.from_user.id,))
+                result = await cursor.fetchall()
+                for item in result:
+                    link = ""
+                    if item[1] == "Hysteria":
+                        link += f"<code>hysteria2://{item[2]}@{HOST_HYSTERIA}?obfs=salamander&obfs-password={SALAMANDER_OBFS}&sni={SNI_HYSTERIA}#AstralHysteria</code>"
+                    elif item[1] == "VLESS":
+                        link += f"<code>vless://{item[2]}@{HOST_VLESS}/?type=tcp&encryption=none&flow=xtls-rprx-vision&sni={SNI_VLESS}&fp=chrome&security=reality&pbk={PUBLIC_KEY}&sid={item[3]}#AstralVLESS</code>"
+                    values += f"\n🔑 <b>{item[1]}</b> → {link}"
+                    await sleep(uniform(1.3, 2.6))
+                await loading_msg.edit_text(f"💁‍♂️ <b>Ваши ключи доступа</b>:\n{values}")
         
-    await callback_query.answer()
+    
 
 
 @rutkey.callback_query(lambda c: c.data == "keys")
